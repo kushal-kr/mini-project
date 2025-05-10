@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Online Examination System</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Poppins', sans-serif;
+    }
+    body {
+      background: linear-gradient(to right, #6a11cb, #2575fc);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .welcome, .quiz-container, .result-container {
+      text-align: center;
+      max-width: 700px;
+      padding: 2rem;
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+    button {
+      margin-top: 20px;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 25px;
+      background-color: #00c9a7;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background-color: #00a58a;
+    }
+    .question {
+      margin-bottom: 20px;
+      text-align: left;
+    }
+    .question h3 {
+      margin-bottom: 10px;
+    }
+    .question label {
+      display: block;
+      margin: 5px 0;
+      cursor: pointer;
+    }
+    .correct {
+      background-color: #28a745;
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      margin-top: 10px;
+    }
+    .incorrect {
+      background-color: #dc3545;
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      margin-top: 10px;
+    }
+    #timer {
+      font-size: 20px;
+      margin-bottom: 20px;
+    }
+    #timeTakenDisplay, #finalScoreDisplay {
+      font-size: 18px;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+    #chartContainer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    #resultChart {
+      width: 220px !important;
+      height: 220px !important;
+    }
+    #performanceMessage {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="welcome" id="welcome">
+    <h1>Welcome to the Online Examination System</h1>
+    <p>Click below to begin your test. Good luck!</p>
+    <button onclick="startTest()">Take The Test</button>
+  </div>
+
+  <div class="quiz-container" id="quiz" style="display:none">
+    <div id="timer">Time Taken: 0s</div>
+    <form id="quizForm"></form>
+    <button onclick="submitQuiz()">Submit</button>
+  </div>
+
+  <div class="result-container" id="result" style="display:none">
+    <div id="chartContainer">
+      <canvas id="resultChart"></canvas>
+      <div id="timeTakenDisplay"></div>
+    </div>
+    <div id="performanceMessage"></div>
+    <h2>Your Score: <span id="score"></span>/20</h2>
+    <div id="answerReview"></div>
+    <div id="finalScoreDisplay"></div>
+  </div>
+
+  <script>
+    const questions = [
+      { q: "Which of the following is not a type of database?", options: ["Hierarchical", "Network", "Relational", "File"], answer: 3 },
+      { q: "What does DBMS stand for?", options: ["Data Basic Management System", "Database Management System", "Database Mechanism Software", "Data Backup Management System"], answer: 1 },
+      { q: "The language used to create and modify database schema is:", options: ["DML", "DCL", "DDL", "SQL"], answer: 2 },
+      { q: "Which of the following is a DML command?", options: ["CREATE", "SELECT", "GRANT", "COMMIT"], answer: 1 },
+      { q: "What is the primary key?", options: ["A key used to unlock the database", "A unique identifier for a record", "A foreign key in a table", "An attribute that can have duplicate values"], answer: 1 },
+      { q: "Which command is used to remove all records from a table without removing its structure?", options: ["DROP", "DELETE", "REMOVE", "TRUNCATE"], answer: 3 },
+      { q: "In a relational database, a table is also known as a:", options: ["Tuple", "Relation", "Attribute", "Domain"], answer: 1 },
+      { q: "Which of these is not a property of a transaction?", options: ["Atomicity", "Consistency", "Isolation", "Centrality"], answer: 3 },
+      { q: "The part of SQL used to control access to data is:", options: ["DDL", "DCL", "DML", "TCL"], answer: 1 },
+      { q: "A foreign key:", options: ["Must be the primary key of the same table", "Cannot be null", "Refers to a primary key in another table", "Is always a composite key"], answer: 2 },
+      { q: "Which of the following is an example of a DDL command?", options: ["INSERT", "UPDATE", "CREATE", "SELECT"], answer: 2 },
+      { q: "What does SQL stand for?", options: ["Structured Query Language", "Simple Query Language", "Sequential Query Language", "Server Query Language"], answer: 0 },
+      { q: "Which of the following is used to ensure the accuracy and consistency of data in a database?", options: ["Backup", "Data Integrity", "Data Mining", "Data Modeling"], answer: 1 },
+      { q: "Which normal form deals with the removal of transitive dependency?", options: ["1NF", "2NF", "3NF", "BCNF"], answer: 2 },
+      { q: "What is a tuple in DBMS?", options: ["A row of a table", "A column of a table", "A relation", "A schema"], answer: 0 },
+      { q: "Which SQL clause is used to filter the results of a query?", options: ["ORDER BY", "WHERE", "GROUP BY", "SELECT"], answer: 1 },
+      { q: "Which command is used to permanently save any transaction into the database?", options: ["SAVE", "COMMIT", "END", "ROLLBACK"], answer: 1 },
+      { q: "What is a view in DBMS?", options: ["A physical table", "A temporary table", "A virtual table based on a query", "An index"], answer: 2 },
+      { q: "Which of the following is not a component of the DBMS?", options: ["Query Processor", "File Manager", "Compiler", "Transaction Manager"], answer: 2 },
+      { q: "Which of the following ensures that only authorized users can access data?", options: ["Integrity", "Security", "Consistency", "Isolation"], answer: 1 }
+    ];
+
+    let timerInterval, seconds = 0;
+
+    function startTest() {
+      document.getElementById('welcome').style.display = 'none';
+      document.getElementById('quiz').style.display = 'block';
+      startTimer();
+      loadQuestions();
+    }
+
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        seconds++;
+        document.getElementById('timer').innerText = `Time Taken: ${seconds}s`;
+      }, 1000);
+    }
+
+    function loadQuestions() {
+      const form = document.getElementById('quizForm');
+      questions.forEach((q, i) => {
+        const div = document.createElement('div');
+        div.classList.add('question');
+        div.innerHTML = `<h3>${i + 1}. ${q.q}</h3>`;
+        q.options.forEach((opt, j) => {
+          div.innerHTML += `<label><input type="radio" name="q${i}" value="${j}"> ${opt}</label>`;
+        });
+        form.appendChild(div);
+      });
+    }
+
+    function submitQuiz() {
+      clearInterval(timerInterval);
+      document.getElementById('quiz').style.display = 'none';
+      document.getElementById('result').style.display = 'block';
+
+      let score = 0;
+      const review = document.getElementById('answerReview');
+      const form = document.getElementById('quizForm');
+      review.innerHTML = '';
+
+      questions.forEach((q, i) => {
+        const userAns = form[`q${i}`].value;
+        const div = document.createElement('div');
+
+        if (parseInt(userAns) === q.answer) {
+          div.className = 'correct';
+          score++;
+        } else {
+          div.className = 'incorrect';
+        }
+
+        div.innerText = `${i + 1}. ${q.q}\nYour answer: ${q.options[userAns] || 'Not answered'}\nCorrect answer: ${q.options[q.answer]}`;
+        review.appendChild(div);
+      });
+
+      document.getElementById('score').innerText = score;
+      document.getElementById('timeTakenDisplay').innerText = `You completed the test in ${seconds} seconds.`;
+      document.getElementById('finalScoreDisplay').innerText = `Final Score: ${score}/20`;
+
+      let performanceMsg = '';
+      if (score === 20) {
+        performanceMsg = 'Excellent!';
+      } else if (score > 10) {
+        performanceMsg = 'Good';
+      } else {
+        performanceMsg = 'Better luck next time.';
+      }
+      document.getElementById('performanceMessage').innerText = performanceMsg;
+
+      const ctx = document.getElementById('resultChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: ['Correct', 'Incorrect'],
+          datasets: [{
+            data: [score, 20 - score],
+            backgroundColor: ['#28a745', '#dc3545']
+          }]
+        },
+        options: {
+          responsive: false
+        }
+      });
+    }
+  </script>
+</body>
+</html>
